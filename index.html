@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Соглашение - PROMED Clinic</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="test-notice">
+            Это тестовая версия вашей формы
+        </div>
+
+        <div class="form-container">
+            <h1>Соглашение</h1>
+            <p class="description">
+                Добровольное информированное согласие пациента на оказание медицинских услуг на платной основе в ТОО «PROMED Clinic»
+            </p>
+
+            <form id="consentForm">
+                <!-- ФИО -->
+                <div class="form-group">
+                    <label for="fio">ФИО <span class="required">*</span></label>
+                    <input type="text" id="fio" name="fio" placeholder="(Ф/И/О)" required>
+                    <span class="error-message" id="fio-error"></span>
+                </div>
+
+                <!-- Дата рождения -->
+                <div class="form-group">
+                    <label for="birthdate">Дата рождения <span class="required">*</span></label>
+                    <input type="text" id="birthdate" name="birthdate" placeholder="дд/мм/гггг" maxlength="10" required>
+                    <span class="error-message" id="birthdate-error"></span>
+                </div>
+
+                <!-- Пол -->
+                <div class="form-group">
+                    <label for="gender">Пол <span class="required">*</span></label>
+                    <select id="gender" name="gender" required>
+                        <option value="">Выберите пол...</option>
+                        <option value="Мужской">Мужской</option>
+                        <option value="Женский">Женский</option>
+                    </select>
+                    <span class="error-message" id="gender-error"></span>
+                </div>
+
+                <!-- ИИН -->
+                <div class="form-group">
+                    <label for="iin">ИИН <span class="required">*</span></label>
+                    <input type="text" id="iin" name="iin" placeholder="(ИИН)" maxlength="12" required>
+                    <span class="error-message" id="iin-error"></span>
+                </div>
+
+                <!-- Телефон -->
+                <div class="form-group">
+                    <label for="phone">Телефон <span class="required">*</span></label>
+                    <input type="tel" id="phone" name="phone" placeholder="(Телефон)" required>
+                    <span class="error-message" id="phone-error"></span>
+                </div>
+
+                <!-- Аллергия -->
+                <div class="form-group">
+                    <label for="allergy">
+                        Я сообщаю о том, что у меня (ребенка, родственника, подопечного) есть аллергия на (если нет аллергии то напишите НЕТ)) <span class="required">*</span>
+                    </label>
+                    <textarea id="allergy" name="allergy" placeholder="(аллергия)" rows="3" required></textarea>
+                    <span class="error-message" id="allergy-error"></span>
+                </div>
+
+                <!-- Процедуры -->
+                <div class="form-group">
+                    <label for="procedures">
+                        Ни при каких обстоятельствах мне не должны выполняться следующие процедуры:)Если таковых нет, напишите НЕТ) <span class="required">*</span>
+                    </label>
+                    <textarea id="procedures" name="procedures" placeholder="(процедуры)" rows="3" required></textarea>
+                    <span class="error-message" id="procedures-error"></span>
+                </div>
+
+                <!-- Подпись -->
+                <div class="form-group">
+                    <label>
+                        Прикрепите вашу подпись <span class="required">*</span>
+                    </label>
+                    <p class="canvas-instructions">
+                        Нажмите, что создать цифровую подпись
+                    </p>
+                    <div class="signature-container">
+                        <canvas id="signatureCanvas"></canvas>
+                    </div>
+                    <div class="signature-controls">
+                        <button type="button" id="clearSignature" class="btn-secondary">Очистить</button>
+                        <button type="button" id="saveSignature" class="btn-save">Сохранить подпись</button>
+                    </div>
+                    <div id="signature-status" class="signature-status"></div>
+                    <span class="error-message" id="signature-error"></span>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn-submit">ЗАВЕРШИТЬ</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

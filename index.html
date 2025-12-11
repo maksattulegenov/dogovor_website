@@ -8,10 +8,6 @@
 </head>
 <body>
     <div class="container">
-        <div class="test-notice">
-            Это тестовая версия вашей формы
-        </div>
-
         <div class="form-container">
             <h1>Соглашение</h1>
             <p class="description">
@@ -63,7 +59,7 @@
                     <label for="allergy">
                         Я сообщаю о том, что у меня (ребенка, родственника, подопечного) есть аллергия на (если нет аллергии то напишите НЕТ)) <span class="required">*</span>
                     </label>
-                    <textarea id="allergy" name="allergy" placeholder="(аллергия)" rows="3" required></textarea>
+                    <textarea id="allergy" name="allergy" placeholder="(аллергия)" rows="3" required>НЕТ</textarea>
                     <span class="error-message" id="allergy-error"></span>
                 </div>
 
@@ -72,7 +68,7 @@
                     <label for="procedures">
                         Ни при каких обстоятельствах мне не должны выполняться следующие процедуры:)Если таковых нет, напишите НЕТ) <span class="required">*</span>
                     </label>
-                    <textarea id="procedures" name="procedures" placeholder="(процедуры)" rows="3" required></textarea>
+                    <textarea id="procedures" name="procedures" placeholder="(процедуры)" rows="3" required>НЕТ</textarea>
                     <span class="error-message" id="procedures-error"></span>
                 </div>
 

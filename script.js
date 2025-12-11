@@ -311,8 +311,34 @@ function initializeForm() {
     document.getElementById('phone').addEventListener('input', validatePhone);
     document.getElementById('iin').addEventListener('input', validateIIN);
     document.getElementById('birthdate').addEventListener('input', formatBirthdate);
+    document.getElementById('fio').addEventListener('input', validateFIO);
     
     form.addEventListener('submit', handleSubmit);
+}
+
+function validateFIO() {
+    const fioInput = document.getElementById('fio');
+    const fioError = document.getElementById('fio-error');
+    const fio = fioInput.value.trim();
+    
+    if (fio === '') {
+        fioError.textContent = '';
+        fioInput.classList.remove('error');
+        return false;
+    }
+    
+    // Russian and Kazakh letters: А-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі and spaces/hyphens
+    const nameRegex = /^[А-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі\s\-]+$/;
+    
+    if (!nameRegex.test(fio)) {
+        fioError.textContent = 'ФИО должно содержать только русские или казахские буквы';
+        fioInput.classList.add('error');
+        return false;
+    } else {
+        fioError.textContent = '';
+        fioInput.classList.remove('error');
+        return true;
+    }
 }
 
 function validatePhone() {
@@ -419,15 +445,13 @@ function validateAllFields() {
     let isValid = true;
     
     // Validate ФИО
-    const fio = document.getElementById('fio').value.trim();
-    const fioError = document.getElementById('fio-error');
-    if (fio === '') {
-        fioError.textContent = 'Пожалуйста, введите ФИО';
-        document.getElementById('fio').classList.add('error');
+    const fioInput = document.getElementById('fio');
+    if (!validateFIO()) {
+        if (fioInput.value.trim() === '') {
+            document.getElementById('fio-error').textContent = 'Пожалуйста, введите ФИО';
+            fioInput.classList.add('error');
+        }
         isValid = false;
-    } else {
-        fioError.textContent = '';
-        document.getElementById('fio').classList.remove('error');
     }
     
     // Validate birthdate

@@ -4,8 +4,9 @@
   "description": "Medical consent form with Google Drive integration",
   "main": "index.html",
   "scripts": {
-    "start": "npx --yes serve@latest -s . -l ${PORT:-8080}"
+    "start": "serve -s . -l $PORT"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "serve": "^14.2.1"
+  }
 }

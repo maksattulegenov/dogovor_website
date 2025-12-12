@@ -2,7 +2,12 @@
 const GOOGLE_CLIENT_ID = '387713201223-raigbff4jiftmkkjt3o2volh5nl20b3h.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyBrUBlv-8jL3H4V7JCUmGGWW6xUQcBQxho';
 const SCOPES = 'https://www.googleapis.com/auth/drive';
-const WEBHOOK_URL = 'https://primary-production-7d413.up.railway.app/webhook-test/9daa28d2-97a7-403f-bfdc-81ea17cf8978';
+const WEBHOOK_URL = 'https://primary-production-7d413.up.railway.app/webhook-test/promed';
+// Production webhook URL (uncomment to use):
+// const WEBHOOK_URL = 'https://primary-production-7d413.up.railway.app/webhook/promed';
+
+// Shared Google Drive folder ID
+const SHARED_FOLDER_ID = '1DuWIUyPbdpW3uqg11xDTXsc-UHQ5aVX6';
 
 // Google API state
 let gapiInited = false;
@@ -22,36 +27,10 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeCanvas();
     initializeForm();
     
-    // Show loading status
+    // Enable the save button (no longer need Google API initialization)
     const saveBtn = document.getElementById('saveSignature');
-    saveBtn.disabled = true;
-    showSignatureStatus('🔄 Загрузка Google Drive API...', 'info');
-    
-    // Check if scripts are loaded
-    if (typeof gapi === 'undefined') {
-        console.error('gapi is not loaded!');
-    }
-    if (typeof google === 'undefined') {
-        console.error('google is not loaded!');
-    }
-    
-    // Initialize Google APIs
-    setTimeout(() => {
-        gapiLoaded();
-        gisLoaded();
-    }, 500);
-    
-    // Set timeout to detect if APIs don't load
-    setTimeout(() => {
-        if (!gapiInited || !gisInited) {
-            console.error('Google APIs failed to initialize');
-            console.error('gapiInited:', gapiInited, 'gisInited:', gisInited);
-            showSignatureStatus(
-                '❌ Не удалось загрузить Google APIs. Откройте файл через веб-сервер (Live Server в VS Code или npm start)', 
-                'error'
-            );
-        }
-    }, 10000); // 10 second timeout
+    saveBtn.disabled = false;
+    console.log('✓ Ready to save signatures to server');
 });
 
 // Initialize Google API
@@ -130,6 +109,14 @@ function requestAccessToken(callback) {
         }
         accessToken = response.access_token;
         driveAuthenticated = true;
+        
+        // Store token in localStorage with expiry time
+        localStorage.setItem('google_access_token', accessToken);
+        // Token expires in 1 hour (3600 seconds), store expiry time
+        const expiryTime = Date.now() + (3600 * 1000);
+        localStorage.setItem('google_token_expiry', expiryTime.toString());
+        console.log('✓ Access token stored in localStorage');
+        
         gapi.client.setToken({ access_token: accessToken });
         callback();
     };
@@ -168,6 +155,9 @@ function initializeCanvas() {
     
     // Save signature button
     document.getElementById('saveSignature').addEventListener('click', handleSaveSignature);
+    
+    // Download signature button
+    document.getElementById('downloadSignature').addEventListener('click', downloadSignature);
     
     // Setup canvas drawing style
     ctx.strokeStyle = '#000';
@@ -236,10 +226,34 @@ function clearSignature() {
     hideSignatureStatus();
 }
 
+// Download signature as PNG file
+function downloadSignature() {
+    if (!hasSignature) {
+        showSignatureStatus('Пожалуйста, нарисуйте подпись перед загрузкой', 'error');
+        return;
+    }
+    
+    // Get IIN for filename
+    const iin = document.getElementById('iin').value.trim();
+    const filename = iin ? `signature_${iin}.png` : 'signature.png';
+    
+    // Convert canvas to blob and download
+    canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showSignatureStatus('✓ Подпись сохранена как ' + filename, 'success');
+    }, 'image/png');
+}
+
 // Handle signature save button click
 async function handleSaveSignature() {
     console.log('Save button clicked!');
-    console.log('gapiInited:', gapiInited, 'gisInited:', gisInited);
     console.log('hasSignature:', hasSignature);
     
     const statusDiv = document.getElementById('signature-status');
@@ -248,13 +262,6 @@ async function handleSaveSignature() {
     const iin = iinInput.value.trim();
     
     console.log('IIN:', iin);
-    
-    // Check if APIs are ready
-    if (!gapiInited || !gisInited) {
-        console.error('APIs not ready!');
-        showSignatureStatus('⏳ Google APIs еще загружаются. Подождите несколько секунд и попробуйте снова.', 'error');
-        return;
-    }
     
     // Validate signature exists
     if (!hasSignature) {
@@ -273,18 +280,14 @@ async function handleSaveSignature() {
     // Disable button during upload
     saveBtn.disabled = true;
     saveBtn.textContent = 'Сохранение...';
-    showSignatureStatus('Загрузка подписи в Google Drive...', 'info');
+    showSignatureStatus('Отправка подписи на сервер...', 'info');
     
     try {
-        const result = await uploadSignatureToDrive(iin);
-        showSignatureStatus('✓ Подпись успешно сохранена в Google Drive как ' + iin + '.png', 'success');
+        const result = await uploadSignatureToServer(iin);
+        showSignatureStatus('✓ Подпись успешно сохранена как ' + iin + '.png', 'success');
     } catch (error) {
         console.error('Error saving signature:', error);
-        if (error.message && error.message.includes('Google APIs')) {
-            showSignatureStatus('⚠️ Google APIs загружаются. Пожалуйста, подождите и попробуйте снова.', 'error');
-        } else {
-            showSignatureStatus('Ошибка при сохранении подписи: ' + (error.message || error), 'error');
-        }
+        showSignatureStatus('Ошибка при сохранении подписи: ' + (error.message || error), 'error');
     } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Сохранить подпись';
@@ -566,6 +569,9 @@ async function handleSubmit(e) {
         document.getElementById('consentForm').reset();
         clearSignature();
         
+        // Close window after successful submission
+        window.close();
+        
     } catch (error) {
         console.error('Error:', error);
         alert('Произошла ошибка при отправке формы: ' + error.message);
@@ -573,6 +579,40 @@ async function handleSubmit(e) {
         submitBtn.disabled = false;
         submitBtn.textContent = 'ЗАВЕРШИТЬ';
     }
+}
+
+// Upload signature to side server (Railway)
+async function uploadSignatureToServer(iin) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob(async (blob) => {
+            try {
+                const formData = new FormData();
+                formData.append('image', blob, `${iin}.png`);
+                formData.append('iin', iin);
+                
+                const response = await fetch('https://web-production-e4b46.up.railway.app/upload-signature', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server error: ${response.status} - ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Signature uploaded successfully:', result);
+                if (result.file && result.file.viewLink) {
+                    console.log('View link:', result.file.viewLink);
+                }
+                resolve(result);
+                
+            } catch (error) {
+                console.error('Error uploading signature to server:', error);
+                reject(error);
+            }
+        }, 'image/png');
+    });
 }
 
 // Upload signature to Google Drive using client-side API
@@ -588,10 +628,15 @@ async function uploadSignatureToDrive(iin) {
                 // Function to perform upload
                 const performUpload = async () => {
                     try {
-                        // Step 1: Create folder with IIN name
-                        console.log('Step 1: Creating folder...');
-                        const iinFolderId = await findOrCreateFolder(iin);
-                        console.log('Folder created/found:', iinFolderId);
+                        // Set token if we have one stored
+                        if (accessToken && driveAuthenticated) {
+                            gapi.client.setToken({ access_token: accessToken });
+                        }
+                        
+                        // Step 1: Create IIN subfolder in shared folder
+                        console.log('Step 1: Creating IIN subfolder in shared folder...');
+                        const iinFolderId = await findOrCreateSubfolder(iin, SHARED_FOLDER_ID);
+                        console.log('Subfolder created/found:', iinFolderId);
                         
                         // Step 2: Find and copy "общее.docx" file
                         console.log('Step 2: Copying общее.docx...');
@@ -629,6 +674,14 @@ async function uploadSignatureToDrive(iin) {
                                 const result = await response.json();
                                 
                                 if (!response.ok) {
+                                    // If token expired, clear stored token and retry
+                                    if (response.status === 401) {
+                                        localStorage.removeItem('google_access_token');
+                                        localStorage.removeItem('google_token_expiry');
+                                        accessToken = null;
+                                        driveAuthenticated = false;
+                                        throw new Error('Токен истек. Пожалуйста, попробуйте снова.');
+                                    }
                                     throw new Error(result.error?.message || 'Ошибка при загрузке файла');
                                 }
                                 
@@ -643,6 +696,13 @@ async function uploadSignatureToDrive(iin) {
                         
                     } catch (error) {
                         console.error('Error in performUpload:', error);
+                        // If token error, clear localStorage
+                        if (error.message && error.message.includes('Токен')) {
+                            localStorage.removeItem('google_access_token');
+                            localStorage.removeItem('google_token_expiry');
+                            accessToken = null;
+                            driveAuthenticated = false;
+                        }
                         reject(error);
                     }
                 };
@@ -723,24 +783,26 @@ async function copyDocxToFolder(targetFolderId) {
     }
 }
 
-// Find or create folder in Google Drive
-async function findOrCreateFolder(folderName) {
+// Find or create subfolder in shared Google Drive folder
+async function findOrCreateSubfolder(subfolderName, parentFolderId) {
     try {
-        // Search for existing folder
+        // Search for existing subfolder in the parent folder
         const response = await gapi.client.drive.files.list({
-            q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+            q: `name='${subfolderName}' and mimeType='application/vnd.google-apps.folder' and '${parentFolderId}' in parents and trashed=false`,
             fields: 'files(id, name)',
             spaces: 'drive'
         });
         
         if (response.result.files && response.result.files.length > 0) {
+            console.log('Subfolder already exists:', response.result.files[0].id);
             return response.result.files[0].id;
         }
         
-        // Create folder if it doesn't exist
+        // Create subfolder if it doesn't exist
         const folderMetadata = {
-            name: folderName,
-            mimeType: 'application/vnd.google-apps.folder'
+            name: subfolderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [parentFolderId]
         };
         
         const folder = await gapi.client.drive.files.create({
@@ -748,10 +810,19 @@ async function findOrCreateFolder(folderName) {
             fields: 'id'
         });
         
+        console.log('Subfolder created:', folder.result.id);
         return folder.result.id;
         
     } catch (error) {
-        console.error('Error finding/creating folder:', error);
+        console.error('Error finding/creating subfolder:', error);
+        // If 401, token expired
+        if (error.status === 401) {
+            localStorage.removeItem('google_access_token');
+            localStorage.removeItem('google_token_expiry');
+            accessToken = null;
+            driveAuthenticated = false;
+            throw new Error('Токен истек. Пожалуйста, попробуйте снова.');
+        }
         throw new Error('Не удалось создать папку в Google Drive');
     }
 }

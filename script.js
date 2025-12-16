@@ -285,12 +285,13 @@ async function handleSaveSignature() {
     try {
         const result = await uploadSignatureToServer(iin);
         showSignatureStatus('✓ Подпись успешно сохранена как ' + iin + '.png', 'success');
+        saveBtn.textContent = 'Подпись сохранена';
     } catch (error) {
         console.error('Error saving signature:', error);
         showSignatureStatus('Ошибка при сохранении подписи: ' + (error.message || error), 'error');
+        saveBtn.textContent = 'Сохранить подпись';
     } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Сохранить подпись';
     }
 }
 
@@ -559,7 +560,7 @@ async function handleSubmit(e) {
             procedures: document.getElementById('procedures').value.trim()
         };
         
-        // Send data to webhook (signature is saved separately)
+        // Send data to webhook with signature as PNG file
         await sendToWebhook(formData);
         
         // Success
@@ -590,13 +591,21 @@ async function uploadSignatureToServer(iin) {
                 formData.append('image', blob, `${iin}.png`);
                 formData.append('iin', iin);
                 
+                console.log('Sending signature to server...');
+                console.log('IIN:', iin);
+                console.log('Blob size:', blob.size, 'bytes');
+                
                 const response = await fetch('https://web-production-e4b46.up.railway.app/upload-signature', {
                     method: 'POST',
+                    mode: 'cors',
                     body: formData
                 });
                 
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
                     const errorText = await response.text();
+                    console.error('Server error response:', errorText);
                     throw new Error(`Server error: ${response.status} - ${errorText}`);
                 }
                 
@@ -609,7 +618,14 @@ async function uploadSignatureToServer(iin) {
                 
             } catch (error) {
                 console.error('Error uploading signature to server:', error);
-                reject(error);
+                console.error('Error details:', error.message, error.stack);
+                
+                // Provide more specific error message
+                if (error.message === 'Failed to fetch') {
+                    reject(new Error('Не удалось подключиться к серверу. Проверьте подключение к интернету.'));
+                } else {
+                    reject(error);
+                }
             }
         }, 'image/png');
     });
@@ -827,23 +843,39 @@ async function findOrCreateSubfolder(subfolderName, parentFolderId) {
     }
 }
 
-// Send data to n8n webhook
+// Send data to n8n webhook with signature as PNG file
 async function sendToWebhook(formData) {
-    try {
-        const response = await fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Ошибка при отправке данных на сервер');
-        }
-        
-        return await response.json();
-    } catch (error) {
-        throw new Error('Не удалось отправить данные: ' + error.message);
-    }
+    return new Promise((resolve, reject) => {
+        canvas.toBlob(async (blob) => {
+            try {
+                const multipartFormData = new FormData();
+                
+                // Add all form fields
+                multipartFormData.append('fio', formData.fio);
+                multipartFormData.append('birthdate', formData.birthdate);
+                multipartFormData.append('gender', formData.gender);
+                multipartFormData.append('iin', formData.iin);
+                multipartFormData.append('phone', formData.phone);
+                multipartFormData.append('allergy', formData.allergy);
+                multipartFormData.append('procedures', formData.procedures);
+                
+                // Add signature as PNG file
+                multipartFormData.append('signature', blob, `${formData.iin}.png`);
+                
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    body: multipartFormData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка при отправке данных на сервер');
+                }
+                
+                const result = await response.json();
+                resolve(result);
+            } catch (error) {
+                reject(new Error('Не удалось отправить данные: ' + error.message));
+            }
+        }, 'image/png');
+    });
 }

@@ -181,6 +181,15 @@ textarea {
     cursor: not-allowed;
 }
 
+.btn-save.btn-saved {
+    background-color: #28a745;
+    cursor: default;
+}
+
+.btn-save.btn-saved:hover {
+    background-color: #28a745;
+}
+
 .signature-status {
     padding: 8px 12px;
     border-radius: 4px;

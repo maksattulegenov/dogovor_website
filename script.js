@@ -252,16 +252,11 @@ function downloadSignature() {
 }
 
 // Handle signature save button click
-async function handleSaveSignature() {
+function handleSaveSignature() {
     console.log('Save button clicked!');
     console.log('hasSignature:', hasSignature);
     
-    const statusDiv = document.getElementById('signature-status');
     const saveBtn = document.getElementById('saveSignature');
-    const iinInput = document.getElementById('iin');
-    const iin = iinInput.value.trim();
-    
-    console.log('IIN:', iin);
     
     // Validate signature exists
     if (!hasSignature) {
@@ -270,29 +265,11 @@ async function handleSaveSignature() {
         return;
     }
     
-    // Validate IIN before saving
-    if (!/^\d{12}$/.test(iin)) {
-        showSignatureStatus('Пожалуйста, введите корректный ИИН (12 цифр) перед сохранением подписи', 'error');
-        iinInput.focus();
-        return;
-    }
-    
-    // Disable button during upload
+    // Mark signature as saved and update button
+    saveBtn.textContent = 'Сохранено';
+    saveBtn.classList.add('btn-saved');
     saveBtn.disabled = true;
-    saveBtn.textContent = 'Сохранение...';
-    showSignatureStatus('Отправка подписи на сервер...', 'info');
-    
-    try {
-        const result = await uploadSignatureToServer(iin);
-        showSignatureStatus('✓ Подпись успешно сохранена как ' + iin + '.png', 'success');
-        saveBtn.textContent = 'Подпись сохранена';
-    } catch (error) {
-        console.error('Error saving signature:', error);
-        showSignatureStatus('Ошибка при сохранении подписи: ' + (error.message || error), 'error');
-        saveBtn.textContent = 'Сохранить подпись';
-    } finally {
-        saveBtn.disabled = false;
-    }
+    showSignatureStatus('✓ Подпись готова к отправке', 'success');
 }
 
 function showSignatureStatus(message, type) {

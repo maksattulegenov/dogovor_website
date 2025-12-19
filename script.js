@@ -2,7 +2,7 @@
 const GOOGLE_CLIENT_ID = '387713201223-raigbff4jiftmkkjt3o2volh5nl20b3h.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyBrUBlv-8jL3H4V7JCUmGGWW6xUQcBQxho';
 const SCOPES = 'https://www.googleapis.com/auth/drive';
-const WEBHOOK_URL = 'https://primary-production-7d413.up.railway.app/webhook-test/promed';
+const WEBHOOK_URL = 'https://primary-production-7d413.up.railway.app/webhook/promed';
 // Production webhook URL (uncomment to use):
 // const WEBHOOK_URL = 'https://primary-production-7d413.up.railway.app/webhook/promed';
 
